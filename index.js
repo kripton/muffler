@@ -146,10 +146,17 @@ for (idx in conf.additionalFiles) {
 phase(4, 'Preparing to chroot');
 {
 fs.copyFileSync('/etc/resolv.conf', 'sysRootMount/etc/resolv.conf');
-formatChildOutput(child.spawnSync('mount', ['-t', 'proc', 'none', 'sysRootMount/proc']));
-formatChildOutput(child.spawnSync('mount', ['-o', 'bind', '/sys', 'sysRootMount/sys']));
-formatChildOutput(child.spawnSync('mount', ['-o', 'bind', '/dev', 'sysRootMount/dev']));
+formatChildOutput(child.spawnSync('mount', ['--types', 'proc', '/proc', 'sysRootMount/proc']));
+formatChildOutput(child.spawnSync('mount', ['--rbind', '/sys', 'sysRootMount/sys']));
+formatChildOutput(child.spawnSync('mount', ['--make-rslave', 'sysRootMount/sys']));
+formatChildOutput(child.spawnSync('mount', ['--rbind', '/dev', 'sysRootMount/dev']));
+formatChildOutput(child.spawnSync('mount', ['--make-rslave', 'sysRootMount/dev']));
 formatChildOutput(child.spawnSync('mount', [loDev + 'p1', 'sysRootMount/boot']));
+
+// Have /var/tmp on the host to avoid out-of-space problems
+fs.rmdirSync('sysRootMountVarTmp', {recursive: true});
+fs.mkdirSync('sysRootMountVarTmp');
+formatChildOutput(child.spawnSync('mount', ['-o', 'bind', 'sysRootMountVarTmp', 'sysRootMount/var/tmp']));
 
 // Prepare the world file and some other files in /etc/portage
 fs.mkdirSync('sysRootMount' + '/etc/portage/package.accept_keywords/');
@@ -177,8 +184,9 @@ echo \"Hello from the chroot!\"\n\
 source /etc/profile\n\
 env-update\n\
 source /etc/profile\n\
+export PS1=\"(chroot) ${PS1}\"\n\
 emerge-webrsync\n\
-eselec profile set " + conf.systemconfig.profile + "\n\
+eselect profile set " + conf.systemconfig.profile + "\n\
 emerge -1uavDN @world\n\
 emerge -ac\n";
 
