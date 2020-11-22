@@ -1,0 +1,24 @@
+{
+  "name": "muffler",
+  "version": "0.0.1",
+  "description": "A tool to create a Gentoo SD card image for a RaspberryPi",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kripton/muffler.git"
+  },
+  "keywords": [
+    "gentoo",
+    "raspberrypi",
+    "catalyst"
+  ],
+  "author": "Jannis Achstetter <kripton@kripserver.net>",
+  "license": "GPL-2.0",
+  "bugs": {
+    "url": "https://github.com/kripton/muffler/issues"
+  },
+  "homepage": "https://github.com/kripton/muffler#readme"
+}

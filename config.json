@@ -1,0 +1,62 @@
+{
+    "outfile": {
+        "filename": "IntercomServer.img",
+        "size": "8G",
+        "zerofree": true,
+        "compress": false
+    },
+    "seedfiles": {
+        "stage": "https://gentoo.osuosl.org/releases/arm64/autobuilds/20201004T190540Z/stage3-arm64-20201004T190540Z.tar.xz"
+    },
+    "systemconfig": {
+        "users": [
+            {
+                "name": "root",
+                "password": "PasswortBekannt",
+                "sshkeys": [
+                    "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCqqJT+kfAJYEhufMMeSYTCb4VezJAjkOoZfFzNH7NaLLMjZh8CC2s2gAQyFEA3KD71H9Kl/0VtOUpMYne9BZS2L4J2HfmbM/BNEEaFzc29mnfshRSir1C10T7yBrcjNin3i0C7HJ+0UjvgubZAsXdjOh3dCuIxVYIwT5BuJb7k72/hKiyBYHvWvuKm9oxuX71VqrbzB6XAmbzAppV2Ho72Q5NqSE1fAtI47H0NTPCeBFp3AjoT2KD3Ko4RPK5W28A3CgAd0NHRiUO8rvQnbFwAJ+ivxLI9j/OTO8lkUU2bb/eALKlcp13OUbdux2YgDfC0msRTlJSzqaD9xV9SnaNZ kripton@ayanta"
+                ]
+            },
+            {
+                "name": "intercom",
+                "password": "PasswortBekannt",
+                "sshkeys": [
+                    "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCqqJT+kfAJYEhufMMeSYTCb4VezJAjkOoZfFzNH7NaLLMjZh8CC2s2gAQyFEA3KD71H9Kl/0VtOUpMYne9BZS2L4J2HfmbM/BNEEaFzc29mnfshRSir1C10T7yBrcjNin3i0C7HJ+0UjvgubZAsXdjOh3dCuIxVYIwT5BuJb7k72/hKiyBYHvWvuKm9oxuX71VqrbzB6XAmbzAppV2Ho72Q5NqSE1fAtI47H0NTPCeBFp3AjoT2KD3Ko4RPK5W28A3CgAd0NHRiUO8rvQnbFwAJ+ivxLI9j/OTO8lkUU2bb/eALKlcp13OUbdux2YgDfC0msRTlJSzqaD9xV9SnaNZ kripton@ayanta"
+                ]
+            }
+        ],
+        "profile": "default/linux/arm64/17.0"
+    },
+    "additionalFiles": [
+        {
+            "path": "/etc/portage/make.conf"
+        }
+    ],
+    "additionalPackages": [
+        {
+            "name": "media-sound/murmur",
+            "accept_keywords": "**"
+        },
+        {
+            "name": "net-libs/nodejs"
+        },
+        {
+            "name": "net-misc/bridge-utils",
+            "accept_keywords": "~arm64"
+        },
+        {
+            "name": "net-wireless/wpa_supplicant"
+        },
+        {
+            "name": "sys-boot/raspberrypi-firmware",
+            "accept_keywords": "~arm64",
+            "accept_license": "raspberrypi-videocore-bin"
+        },
+        {
+            "name": "sys-kernel/raspberrypi-image",
+            "accept_keywords": "~arm64",
+            "accept_license": "raspberrypi-videocore-bin"
+        }
+    ],
+    "promptInChroot": true
+}
