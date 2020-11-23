@@ -1,6 +1,6 @@
 {
   "name": "muffler",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A tool to create a Gentoo SD card image for a RaspberryPi",
   "main": "index.js",
   "scripts": {

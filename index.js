@@ -5,6 +5,7 @@ const process = require('process');
 const os = require('os');
 const child = require('child_process');
 
+let confFileName = '';
 let conf = {};
 let loDev = '';
 
@@ -48,6 +49,18 @@ try {
 {
 phase(1, 'Santiy check + read cfg');
 
+// First given parameter must be the name of the config
+if (process.argv.length == 2) {
+    throw('No config file name given');
+}
+confFileName = process.argv[2];
+if (!fs.existsSync(confFileName)) {
+    throw('Config file given on the command line does not exist');
+}
+if (!fs.statSync(confFileName).isFile()) {
+    throw('Config file given on the command line is not a file');
+}
+
 // Fail if we don't run as root
 const uName = os.userInfo().username;
 console.log('Running as user "' + uName + '"');
@@ -56,8 +69,12 @@ if (uName !== 'root') {
 }
 
 // Read the config file
-const configContent = fs.readFileSync('config.json');
+const configContent = fs.readFileSync(confFileName);
 conf = JSON.parse(configContent);
+if (!conf.outfile.filename) {
+    console.warn("!!! Output filename not specified in config. Deriving it form the config's name");
+    conf.outfile.filename = confFileName.split('.')[0] + '.img';
+}
 }
 
 // ########################################
@@ -136,7 +153,7 @@ console.log('Copy over additional files:');
 for (idx in conf.additionalFiles) {
     const file = conf.additionalFiles[idx];
     console.log("\t" + file.path);
-    fs.copyFileSync('additionalFiles' + file.path, 'sysRootMount' + file.path);
+    fs.copyFileSync(confFileName.split('.')[0] + '.additionalFiles' + file.path, 'sysRootMount' + file.path);
 }
 }
 
@@ -187,8 +204,8 @@ source /etc/profile\n\
 export PS1=\"(chroot) ${PS1}\"\n\
 emerge-webrsync\n\
 eselect profile set " + conf.systemconfig.profile + "\n\
-emerge -1uavDN @world\n\
-emerge -ac\n";
+emerge -1uvDN @world\n\
+emerge -c\n";
 
 if (conf.promptInChroot) {
     chrootScript += "echo \"Chroot work done, here's your prompt:\"\n\/bin/bash\n";

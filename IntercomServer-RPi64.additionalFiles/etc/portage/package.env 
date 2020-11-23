@@ -1,0 +1,2 @@
+## Try to work around https://forums.gentoo.org/viewtopic-t-1112500.html
+dev-lang/python noparallelbuild.conf
