@@ -1,0 +1,1 @@
+ipv6.disable=0 selinux=0 plymouth.enable=0 smsc95xx.turbo_mode=N dwc_otg.lpm_enable=0 console=tty1 root=LABEL=IntercomSrvRoot elevator=noop rootwait

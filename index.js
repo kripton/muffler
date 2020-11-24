@@ -119,8 +119,13 @@ child.execSync('partprobe ' + loDev);
 console.log('Partition contents PRE FORMAT:');
 formatChildOutput(child.spawnSync('file', ['-sL', loDev + 'p1', loDev + 'p2']));
 
+var rootFsLabel = 'GentooRoot';
+if ((conf.outfile.rootFsLabel) && (conf.outfile.rootFsLabel.length <= 16)) {
+    rootFsLabel = conf.outfile.rootFsLabel;
+}
+
 formatChildOutput(child.spawnSync('mkfs.vfat', ['-n', 'BOOT', loDev + 'p1']));
-formatChildOutput(child.spawnSync('mkfs.ext4', ['-L', 'Gentoo_Root', loDev + 'p2']));
+formatChildOutput(child.spawnSync('mkfs.ext4', ['-L', rootFsLabel, loDev + 'p2']));
 
 console.log('Partition contents POST FORMAT:');
 formatChildOutput(child.spawnSync('file', ['-sL', loDev + 'p1', loDev + 'p2']));
@@ -148,13 +153,6 @@ formatChildOutput(child.spawnSync('tar', ['xpf', '../' + seedFileName, "--xattrs
 
 console.log('Free space in mounted directory:');
 formatChildOutput(child.spawnSync('df', ['-h', 'sysRootMount']));
-
-console.log('Copy over additional files:');
-for (idx in conf.additionalFiles) {
-    const file = conf.additionalFiles[idx];
-    console.log("\t" + file.path);
-    fs.copyFileSync(confFileName.split('.')[0] + '.additionalFiles' + file.path, 'sysRootMount' + file.path);
-}
 }
 
 // ########################################
@@ -174,6 +172,21 @@ formatChildOutput(child.spawnSync('mount', [loDev + 'p1', 'sysRootMount/boot']))
 fs.rmdirSync('sysRootMountVarTmp', {recursive: true});
 fs.mkdirSync('sysRootMountVarTmp');
 formatChildOutput(child.spawnSync('mount', ['-o', 'bind', 'sysRootMountVarTmp', 'sysRootMount/var/tmp']));
+
+console.log('Copy over additional "preMerge" files:');
+for (idx in conf.additionalFiles) {
+    const file = conf.additionalFiles[idx];
+    if (file.step === 'preMerge') {
+        console.log("\t" + file.path);
+        // Make sure that the directory to copy to exists
+        const targetPath = 'sysRootMount' + file.path;
+        const targetDir = targetPath.substring(0, targetPath.lastIndexOf('/') + 1);
+        if (!fs.existsSync(targetDir)) {
+             fs.mkdirSync(targetDir, {recursive: true});
+        }
+        fs.copyFileSync(confFileName.split('.')[0] + '.additionalFiles' + file.path, 'sysRootMount' + file.path);
+    }
+}
 
 // Prepare the world file and some other files in /etc/portage
 fs.mkdirSync('sysRootMount' + '/etc/portage/package.accept_keywords/');
@@ -202,10 +215,10 @@ source /etc/profile\n\
 env-update\n\
 source /etc/profile\n\
 export PS1=\"(chroot) ${PS1}\"\n\
-emerge-webrsync\n\
-eselect profile set " + conf.systemconfig.profile + "\n\
-emerge -1uvDN @world\n\
-emerge -c\n";
+#emerge-webrsync\n\
+#eselect profile set " + conf.systemconfig.profile + "\n\
+#emerge -1uvDN @world\n\
+#emerge -c\n";
 
 if (conf.promptInChroot) {
     chrootScript += "echo \"Chroot work done, here's your prompt:\"\n\/bin/bash\n";
@@ -224,6 +237,21 @@ phase(5, 'chrooting');
 console.log('Chrooting ...');
 child.spawnSync('chroot', ['sysRootMount', '/mufflerScript.sh'], {stdio: 'inherit'});
 console.log('Back from the chroot :)');
+
+console.log('Copy over additional "postMerge" files:');
+for (idx in conf.additionalFiles) {
+    const file = conf.additionalFiles[idx];
+    if (file.step === 'postMerge') {
+        console.log("\t" + file.path);
+        // Make sure that the directory to copy to exists
+        const targetPath = 'sysRootMount' + file.path;
+        const targetDir = targetPath.substring(0, targetPath.lastIndexOf('/') + 1);
+        if (!fs.existsSync(targetDir)) {
+             fs.mkdirSync(targetDir, {recursive: true});
+        }
+        fs.copyFileSync(confFileName.split('.')[0] + '.additionalFiles' + file.path, 'sysRootMount' + file.path);
+    }
+}
 }
 
 // ########################################
