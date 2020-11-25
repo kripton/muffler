@@ -173,6 +173,10 @@ fs.rmdirSync('sysRootMountVarTmp', {recursive: true});
 fs.mkdirSync('sysRootMountVarTmp');
 formatChildOutput(child.spawnSync('mount', ['-o', 'bind', 'sysRootMountVarTmp', 'sysRootMount/var/tmp']));
 
+if (conf.systemconfig.hostname) {
+    fs.writeFileSync('sysRootMount/etc/conf.d/hostname', 'hostname="' + conf.systemconfig.hostname + '"');
+}
+
 console.log('Copy over additional "preMerge" files:');
 for (idx in conf.additionalFiles) {
     const file = conf.additionalFiles[idx];
@@ -214,11 +218,29 @@ echo \"Hello from the chroot!\"\n\
 source /etc/profile\n\
 env-update\n\
 source /etc/profile\n\
-export PS1=\"(chroot) ${PS1}\"\n\
-#emerge-webrsync\n\
-#eselect profile set " + conf.systemconfig.profile + "\n\
-#emerge -1uvDN @world\n\
-#emerge -c\n";
+emerge-webrsync\n\
+eselect profile set " + conf.systemconfig.profile + "\n\
+emerge -1uvDN @world\n\
+emerge -c\n";
+
+// Add and/or prepare the users
+for (idx in conf.systemconfig.users) {
+    const userInfo = conf.systemconfig.users[idx];
+    if (userInfo.name != 'root') {
+        chrootScript += "useradd -m " + userInfo.name + "\n";
+    }
+    if (userInfo.password) {
+        chrootScript += 'echo "' + userInfo.name + ':' + userInfo.password + "\" | chpasswd\n";
+    }
+    if (userInfo.sshkeys) {
+        chrootScript += 'mkdir /home/' + userInfo.name + "/.ssh\n";
+        for (idx2 in userInfo.sshkeys) {
+            chrootScript += 'echo "' + userInfo.sshkeys[idx2] + '" >> /home/' + userInfo.name + "/.ssh/authorized_keys\n";
+        }
+        chrootScript += 'chown -Rv ' + userInfo.name + ':' + userInfo.name + ' /home/' + userInfo.name + "/.ssh\n";
+        chrootScript += 'chmod 0400 /home/' + userInfo.name + "/.ssh/authorized_keys\n";
+    }
+}
 
 if (conf.promptInChroot) {
     chrootScript += "echo \"Chroot work done, here's your prompt:\"\n\/bin/bash\n";
@@ -237,6 +259,7 @@ phase(5, 'chrooting');
 console.log('Chrooting ...');
 child.spawnSync('chroot', ['sysRootMount', '/mufflerScript.sh'], {stdio: 'inherit'});
 console.log('Back from the chroot :)');
+fs.unlinkSync('sysRootMount/mufflerScript.sh');
 
 console.log('Copy over additional "postMerge" files:');
 for (idx in conf.additionalFiles) {
@@ -252,6 +275,21 @@ for (idx in conf.additionalFiles) {
         fs.copyFileSync(confFileName.split('.')[0] + '.additionalFiles' + file.path, 'sysRootMount' + file.path);
     }
 }
+
+console.log('Executing additional scripts');
+const additionalScriptFoldername = confFileName.split('.')[0] + '.additionalScripts';
+if ((fs.existsSync(additionalScriptFoldername)) && (fs.statSync(additionalScriptFoldername).isDirectory())) {
+    const additionalScripts = fs.readdirSync(additionalScriptFoldername);
+    for (idx in additionalScripts) {
+        const additionalScriptFileName = additionalScripts[idx];
+        console.log(additionalScriptFileName);
+        fs.copyFileSync(additionalScriptFoldername + '/' + additionalScriptFileName, 'sysRootMount/' + additionalScriptFileName);
+        formatChildOutput(child.spawnSync('chmod', ['+x', 'sysRootMount/' + additionalScriptFileName]));
+        child.spawnSync('chroot', ['sysRootMount', '/' + additionalScriptFileName], {stdio: 'inherit'});
+        fs.unlinkSync('sysRootMount/' + additionalScriptFileName);
+    }
+}
+console.log('Done :)');
 }
 
 // ########################################
@@ -285,7 +323,15 @@ if (conf.outfile.compress) {
 } catch(e) {
     console.error(e);
 
-    // TODO: Umount and remove loop device
+    // Umount and remove loop device
+    try {
+        formatChildOutput(child.spawnSync('umount', ['-R', 'sysRootMount']));
+    } catch(e) {}
+    try {
+        if (loDev) {
+            formatChildOutput(child.spawnSync('losetup', ['-d', loDev]));
+        }
+    } catch(e) {}
 
     process.exit(1);
 };
