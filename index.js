@@ -169,7 +169,7 @@ formatChildOutput(child.spawnSync('mount', ['--make-rslave', 'sysRootMount/dev']
 formatChildOutput(child.spawnSync('mount', [loDev + 'p1', 'sysRootMount/boot']));
 
 // Have /var/tmp on the host to avoid out-of-space problems
-fs.rmdirSync('sysRootMountVarTmp', {recursive: true});
+// Don't delete it since it might contain binary packages
 fs.mkdirSync('sysRootMountVarTmp');
 formatChildOutput(child.spawnSync('mount', ['-o', 'bind', 'sysRootMountVarTmp', 'sysRootMount/var/tmp']));
 
@@ -219,9 +219,23 @@ source /etc/profile\n\
 env-update\n\
 source /etc/profile\n\
 emerge-webrsync\n\
-eselect profile set " + conf.systemconfig.profile + "\n\
-emerge -1uvDN @world\n\
-emerge -c\n";
+eselect profile set " + conf.systemconfig.profile + "\n";
+
+if ((conf.useBinaryPackages) || (conf.generateBinaryPackages)) {
+    chrootScript += 'echo "PKGDIR=\\"/var/tmp/binpkgs\\"" >> /etc/portage/make.conf' + "\n";
+}
+
+if (conf.useBinaryPackages) {
+    chrootScript += "emerge -1uvDN --usepkg @world\n";
+} else {
+    chrootScript += "emerge -1uvDN @world\n";
+}
+
+chrootScript += "emerge -c\n";
+
+if (conf.generateBinaryPackages) {
+    chrootScript += "quickpkg --include-config y --include-unmodified-config y @installed\n";
+}
 
 // Add and/or prepare the users
 for (idx in conf.systemconfig.users) {
@@ -233,12 +247,16 @@ for (idx in conf.systemconfig.users) {
         chrootScript += 'echo "' + userInfo.name + ':' + userInfo.password + "\" | chpasswd\n";
     }
     if (userInfo.sshkeys) {
-        chrootScript += 'mkdir /home/' + userInfo.name + "/.ssh\n";
-        for (idx2 in userInfo.sshkeys) {
-            chrootScript += 'echo "' + userInfo.sshkeys[idx2] + '" >> /home/' + userInfo.name + "/.ssh/authorized_keys\n";
+        let homedir = '/home/' + userInfo.name + '/';
+        if (userInfo.name === 'root') {
+            homedir = '/root/';
         }
-        chrootScript += 'chown -Rv ' + userInfo.name + ':' + userInfo.name + ' /home/' + userInfo.name + "/.ssh\n";
-        chrootScript += 'chmod 0400 /home/' + userInfo.name + "/.ssh/authorized_keys\n";
+        chrootScript += 'mkdir ' + homedir + "/.ssh\n";
+        for (idx2 in userInfo.sshkeys) {
+            chrootScript += 'echo "' + userInfo.sshkeys[idx2] + '" >> ' + homedir + "/.ssh/authorized_keys\n";
+        }
+        chrootScript += 'chown -Rv ' + userInfo.name + ':' + userInfo.name + ' ' + homedir + "/.ssh\n";
+        chrootScript += 'chmod 0400 ' + homedir + "/.ssh/authorized_keys\n";
     }
 }
 
