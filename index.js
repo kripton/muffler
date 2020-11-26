@@ -170,7 +170,9 @@ formatChildOutput(child.spawnSync('mount', [loDev + 'p1', 'sysRootMount/boot']))
 
 // Have /var/tmp on the host to avoid out-of-space problems
 // Don't delete it since it might contain binary packages
-fs.mkdirSync('sysRootMountVarTmp');
+try {
+    fs.mkdirSync('sysRootMountVarTmp');
+} catch(e) {}
 formatChildOutput(child.spawnSync('mount', ['-o', 'bind', 'sysRootMountVarTmp', 'sysRootMount/var/tmp']));
 
 if (conf.systemconfig.hostname) {
