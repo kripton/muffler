@@ -1,4 +1,9 @@
-bridge_br0="eth0 wlan0"
+## We cannot hard-code wlan0 to br0 since that will hard-fail
+## We cannot dynamically add wlan0 to br0 since wpa_supplicant won't be ready fast enough
+## We need to do that in a local.d-script
+
+bridge_br0="eth0"
+#bridge_add_wlan0="br0"
 
 config_eth0="null"
 config_wlan0="null"
@@ -10,11 +15,11 @@ config_br0="172.17.206.206/16"
 
 ## Be a WiFi AP ourselves
 modules="wpa_supplicant"
-wpa_supplicant_wlan0="-Dnl80211"
+wpa_supplicant_wlan0="-Dnl80211 -d -bbr0 -f /var/log/wpa_supplicant.log"
 mode_wlan0="master"
-#essid_wlan0="IntercomServer"
-#channel_eth0="11"
-#key_IntercomServer="s:TestWifiPassword enc open"
 
-## br0 depends on wlan0
-rc_net_br0_need="net.wlan0"
+## wlan0 depends on br0 being up and running
+rc_net_wlan0_need="net.br0"
+
+bridge_forward_delay_br0=0
+bridge_hello_time_br0=1000

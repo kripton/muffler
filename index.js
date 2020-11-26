@@ -191,6 +191,9 @@ for (idx in conf.additionalFiles) {
              fs.mkdirSync(targetDir, {recursive: true});
         }
         fs.copyFileSync(confFileName.split('.')[0] + '.additionalFiles' + file.path, 'sysRootMount' + file.path);
+        if (file.chmod) {
+            fs.chmodSync('sysRootMount' + file.path, file.chmod);
+        }
     }
 }
 
@@ -293,6 +296,9 @@ for (idx in conf.additionalFiles) {
              fs.mkdirSync(targetDir, {recursive: true});
         }
         fs.copyFileSync(confFileName.split('.')[0] + '.additionalFiles' + file.path, 'sysRootMount' + file.path);
+        if (file.chmod) {
+            fs.chmodSync('sysRootMount' + file.path, file.chmod);
+        }
     }
 }
 
