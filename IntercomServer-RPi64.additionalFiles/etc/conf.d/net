@@ -1,6 +1,6 @@
 ## We cannot hard-code wlan0 to br0 since that will hard-fail
 ## We cannot dynamically add wlan0 to br0 since wpa_supplicant won't be ready fast enough
-## We need to do that in a local.d-script
+## We do that in the postup()-script below
 
 bridge_br0="eth0"
 #bridge_add_wlan0="br0"
@@ -23,3 +23,13 @@ rc_net_wlan0_need="net.br0"
 
 bridge_forward_delay_br0=0
 bridge_hello_time_br0=1000
+
+postup() {
+        if [ "${IFACE}" == "wlan0" ]
+        then
+                ip link set dev wlan0 master br0
+        fi
+
+        # Return 0 always
+        return 0
+}
