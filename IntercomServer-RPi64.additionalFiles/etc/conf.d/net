@@ -1,19 +1,29 @@
-## We cannot hard-code wlan0 to br0 since that will hard-fail
-## We cannot dynamically add wlan0 to br0 since wpa_supplicant won't be ready fast enough
-## We do that in the postup()-script below
-
+## We cannot hard-code wlan0 to br0 since that will hard-fail, so only add eth0 fixed
 bridge_br0="eth0"
+## We cannot dynamically add wlan0 to br0 since wpa_supplicant won't be ready fast enough
 #bridge_add_wlan0="br0"
+## We need to do that in the postup()-hook further down
 
+## No IPs on the individual interfaces
 config_eth0="null"
 config_wlan0="null"
-config_br0="172.17.206.206/16"
 
-## Upstream internet connection
+## Try DHCP for br0 first but have a fallback so the bring-up never fails
+## This is required since we add our static IP in any case (DHCP worked or fails)
+## Furthermore, we will use the postup-hook to start a DHCP server if
+## we detect the fallback-IP on the interface
+## Of course, we could have used the failup()-hook but I prefer it not to fail
+#config_br0="172.17.206.206/16"
+fallback_br0="169.254.206.206/16"
+
+## Upstream internet connection. Will be managed by DHCP for now
+## but we leave the entries here as a reference
 #routes_br0="default via 192.168.189.254"
 #dns_servers_br0="192.168.189.254"
 
 ## Be a WiFi AP ourselves
+## AP details (SSID, Passphrase, Channel) is in /etc/wpa_supplicant/wpa_supplicant.conf
+## We need to tell wpa_supplicant that br0 is its master via its command line
 modules="wpa_supplicant"
 wpa_supplicant_wlan0="-Dnl80211 -d -bbr0 -f /var/log/wpa_supplicant.log"
 mode_wlan0="master"
@@ -21,13 +31,26 @@ mode_wlan0="master"
 ## wlan0 depends on br0 being up and running
 rc_net_wlan0_need="net.br0"
 
+## Immediately have the bridge working as soon as it is "up"
 bridge_forward_delay_br0=0
 bridge_hello_time_br0=1000
 
+## Hook to be called whenever an interface was brought up successfully
 postup() {
         if [ "${IFACE}" == "wlan0" ]
         then
                 ip link set dev wlan0 master br0
+        fi
+
+        if [ "${IFACE}" == "br0" ]
+        then
+                ip addr add dev br0 172.17.206.206/16
+                if [ $(ip addr show dev br0 | grep 169.254.206.206 | wc -l) == "1" ]
+                then
+                        ewarn "Configuration via DHCP failed, starting DHCP server"
+                        ## TODO
+                fi
+
         fi
 
         # Return 0 always
