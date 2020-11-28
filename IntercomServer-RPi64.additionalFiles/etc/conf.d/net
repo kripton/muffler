@@ -13,8 +13,9 @@ config_wlan0="null"
 ## Furthermore, we will use the postup-hook to start a DHCP server if
 ## we detect the fallback-IP on the interface
 ## Of course, we could have used the failup()-hook but I prefer it not to fail
-#config_br0="172.17.206.206/16"
-fallback_br0="169.254.206.206/16"
+#config_br0="172.17.206.172/16"
+config_br0="dhcp"
+fallback_br0="169.254.206.172/16"
 
 ## Upstream internet connection. Will be managed by DHCP for now
 ## but we leave the entries here as a reference
@@ -39,16 +40,19 @@ bridge_hello_time_br0=1000
 postup() {
         if [ "${IFACE}" == "wlan0" ]
         then
+                ## Log output from here won't be seen since netifrc goes to background
                 ip link set dev wlan0 master br0
         fi
 
         if [ "${IFACE}" == "br0" ]
         then
-                ip addr add dev br0 172.17.206.206/16
+                ip addr add dev br0 172.17.206.172/16
                 if [ $(ip addr show dev br0 | grep 169.254.206.206 | wc -l) == "1" ]
                 then
                         ewarn "Configuration via DHCP failed, starting DHCP server"
-                        ## TODO
+                        ## Need to have the "&" at the end to avoid a deadlock
+                        ## by having dnsmasq waiting for br0 to become ready
+                        /etc/init.d/dnsmasq start &
                 fi
 
         fi
